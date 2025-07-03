@@ -135,7 +135,6 @@ export type Database = {
           id: string
           is_verified: boolean | null
           license_key: string | null
-          role: Database["public"]["Enums"]["app_role"] | null
           updated_at: string | null
           user_id: string
         }
@@ -145,7 +144,6 @@ export type Database = {
           id?: string
           is_verified?: boolean | null
           license_key?: string | null
-          role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string | null
           user_id: string
         }
@@ -155,7 +153,6 @@ export type Database = {
           id?: string
           is_verified?: boolean | null
           license_key?: string | null
-          role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string | null
           user_id?: string
         }
@@ -321,10 +318,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_user_role: {
-        Args: { user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "admin" | "user"
