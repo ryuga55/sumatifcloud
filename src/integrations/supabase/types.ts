@@ -9,16 +9,325 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          status: string
+          student_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          status: string
+          student_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          status?: string
+          student_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      classes: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      license_keys: {
+        Row: {
+          assigned_user_id: string | null
+          created_at: string | null
+          id: string
+          is_used: boolean | null
+          key: string
+          used_at: string | null
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          key: string
+          used_at?: string | null
+        }
+        Update: {
+          assigned_user_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          key?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string | null
+          id: string
+          is_verified: boolean | null
+          license_key: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          is_verified?: boolean | null
+          license_key?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          is_verified?: boolean | null
+          license_key?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scores: {
+        Row: {
+          assessment_name: string
+          category_id: string
+          created_at: string | null
+          id: string
+          score: number
+          student_id: string
+          subject_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assessment_name: string
+          category_id: string
+          created_at?: string | null
+          id?: string
+          score: number
+          student_id: string
+          subject_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assessment_name?: string
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          score?: number
+          student_id?: string
+          subject_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scores_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scores_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          class_id: string
+          created_at: string | null
+          id: string
+          name: string
+          nis: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          nis: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          nis?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weights: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+          weight_percent: number
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          weight_percent: number
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          weight_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weights_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +442,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
