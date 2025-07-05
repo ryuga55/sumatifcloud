@@ -187,6 +187,34 @@ const Siswa = () => {
     }
   };
 
+  const downloadTemplate = () => {
+    // Create sample data with headers
+    const templateData = [
+      ['Nama Lengkap', 'NIS', 'Kelas'],
+      ['Contoh: Ahmad Budi', '12345', 'Kelas 1A'],
+      ['Contoh: Siti Aminah', '12346', 'Kelas 1B']
+    ];
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(templateData);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 20 }, // Nama Lengkap
+      { wch: 15 }, // NIS
+      { wch: 15 }  // Kelas
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Template Siswa');
+    XLSX.writeFile(wb, 'template_siswa.xlsx');
+
+    toast({
+      title: "Success",
+      description: "Template Excel berhasil diunduh",
+    });
+  };
+
   const handleExcelImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
@@ -197,37 +225,83 @@ const Siswa = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
       
+      // Check if file has data
+      if (jsonData.length < 2) {
+        toast({
+          title: "Error",
+          description: "File Excel kosong atau tidak memiliki data siswa",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Skip header row and process data
       const rows = jsonData.slice(1) as any[][];
       const studentsToImport = [];
+      const errors: string[] = [];
 
-      for (const row of rows) {
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNumber = i + 2; // +2 because we start from row 2 (after header)
+        
+        // Skip empty rows
+        if (!row || row.length === 0 || !row.some(cell => cell)) continue;
+
         const [name, nis, className] = row;
-        if (!name || !nis || !className) continue;
 
-        // Find class by name
-        const matchingClass = classes.find(c => c.name.toLowerCase() === className.toLowerCase());
+        // Validate required fields
+        if (!name || !nis || !className) {
+          errors.push(`Baris ${rowNumber}: Data tidak lengkap (nama, nis, atau kelas kosong)`);
+          continue;
+        }
+
+        // Check for duplicate NIS in the import data
+        const isDuplicateInImport = studentsToImport.some(s => s.nis === nis.toString());
+        if (isDuplicateInImport) {
+          errors.push(`Baris ${rowNumber}: NIS ${nis} duplikat dalam file Excel`);
+          continue;
+        }
+
+        // Check for existing NIS in database
+        const existingStudent = students.find(s => s.nis === nis.toString());
+        if (existingStudent) {
+          errors.push(`Baris ${rowNumber}: NIS ${nis} sudah terdaftar (${existingStudent.name})`);
+          continue;
+        }
+
+        // Find class by name (case insensitive and trim whitespace)
+        const matchingClass = classes.find(c => 
+          c.name.toLowerCase().trim() === className.toString().toLowerCase().trim()
+        );
+        
         if (!matchingClass) {
-          toast({
-            title: "Warning",
-            description: `Class "${className}" not found for student ${name}`,
-            variant: "destructive",
-          });
+          const availableClasses = classes.map(c => c.name).join(', ');
+          errors.push(`Baris ${rowNumber}: Kelas "${className}" tidak ditemukan. Kelas tersedia: ${availableClasses}`);
           continue;
         }
 
         studentsToImport.push({
-          name: name.toString(),
-          nis: nis.toString(),
+          name: name.toString().trim(),
+          nis: nis.toString().trim(),
           class_id: matchingClass.id,
           user_id: user.id
         });
       }
 
+      // Show errors if any
+      if (errors.length > 0) {
+        toast({
+          title: "Peringatan Import",
+          description: `${errors.length} baris bermasalah. ${studentsToImport.length} siswa akan diimport.`,
+          variant: "destructive",
+        });
+        console.warn('Import errors:', errors);
+      }
+
       if (studentsToImport.length === 0) {
         toast({
           title: "Error",
-          description: "No valid data found in Excel file",
+          description: "Tidak ada data siswa yang valid untuk diimport",
           variant: "destructive",
         });
         return;
@@ -242,13 +316,24 @@ const Siswa = () => {
           classes(name)
         `);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        toast({
+          title: "Error",
+          description: error.message.includes('duplicate') 
+            ? "Beberapa NIS sudah terdaftar dalam sistem"
+            : "Gagal menyimpan data siswa",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      setStudents([...students, ...insertedData]);
+      // Update local state
+      setStudents(prev => [...prev, ...insertedData].sort((a, b) => a.name.localeCompare(b.name)));
       
       toast({
         title: "Success",
-        description: `${insertedData.length} students imported successfully`,
+        description: `${insertedData.length} siswa berhasil diimport${errors.length > 0 ? ` (${errors.length} baris diabaikan)` : ''}`,
       });
 
       // Reset file input
@@ -257,7 +342,7 @@ const Siswa = () => {
       console.error('Error importing Excel:', error);
       toast({
         title: "Error",
-        description: "Failed to import Excel file",
+        description: "Gagal membaca file Excel. Pastikan format file benar.",
         variant: "destructive",
       });
     }
@@ -290,6 +375,10 @@ const Siswa = () => {
               </div>
               
               <div className="flex gap-2">
+                <Button variant="outline" onClick={downloadTemplate}>
+                  <GraduationCap className="mr-2 h-4 w-4" />
+                  Download Template
+                </Button>
                 <Button variant="outline" onClick={() => document.getElementById('excel-input')?.click()}>
                   <Upload className="mr-2 h-4 w-4" />
                   Import Excel
