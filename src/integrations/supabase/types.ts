@@ -133,6 +133,7 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          is_approved: boolean | null
           is_verified: boolean | null
           license_key: string | null
           role: Database["public"]["Enums"]["app_role"] | null
@@ -143,6 +144,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_approved?: boolean | null
           is_verified?: boolean | null
           license_key?: string | null
           role?: Database["public"]["Enums"]["app_role"] | null
@@ -153,6 +155,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_approved?: boolean | null
           is_verified?: boolean | null
           license_key?: string | null
           role?: Database["public"]["Enums"]["app_role"] | null
