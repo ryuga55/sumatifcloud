@@ -101,33 +101,6 @@ export type Database = {
         }
         Relationships: []
       }
-      license_keys: {
-        Row: {
-          assigned_user_id: string | null
-          created_at: string | null
-          id: string
-          is_used: boolean | null
-          key: string
-          used_at: string | null
-        }
-        Insert: {
-          assigned_user_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_used?: boolean | null
-          key: string
-          used_at?: string | null
-        }
-        Update: {
-          assigned_user_id?: string | null
-          created_at?: string | null
-          id?: string
-          is_used?: boolean | null
-          key?: string
-          used_at?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           created_at: string | null
@@ -135,7 +108,6 @@ export type Database = {
           id: string
           is_approved: boolean | null
           is_verified: boolean | null
-          license_key: string | null
           role: Database["public"]["Enums"]["app_role"] | null
           updated_at: string | null
           user_id: string
@@ -146,7 +118,6 @@ export type Database = {
           id?: string
           is_approved?: boolean | null
           is_verified?: boolean | null
-          license_key?: string | null
           role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string | null
           user_id: string
@@ -157,7 +128,6 @@ export type Database = {
           id?: string
           is_approved?: boolean | null
           is_verified?: boolean | null
-          license_key?: string | null
           role?: Database["public"]["Enums"]["app_role"] | null
           updated_at?: string | null
           user_id?: string

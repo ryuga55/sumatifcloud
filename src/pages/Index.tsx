@@ -20,10 +20,8 @@ const Index = () => {
         navigate('/admin');
       } else if (profile.role === 'user' && !profile.is_approved) {
         navigate('/waiting-approval');
-      } else if (profile.role === 'user' && profile.is_approved && !profile.is_verified) {
-        navigate('/license');
       }
-      // If user is approved and verified, stay on dashboard
+      // If user is approved, stay on dashboard
     }
   }, [user, profile, loading, navigate]);
 
@@ -78,7 +76,7 @@ const Index = () => {
           </h2>
           <p className="mt-2 text-gray-600">
             {profile.role === 'admin' 
-              ? 'Dashboard Administrator - Kelola sistem dan lisensi' 
+              ? 'Dashboard Administrator - Kelola pengguna sistem' 
               : 'Dashboard Sekolah - Kelola data siswa dan nilai'
             }
           </p>
@@ -86,18 +84,6 @@ const Index = () => {
 
         {profile.role === 'admin' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>License Management</CardTitle>
-                <CardDescription>Kelola license key untuk sekolah</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full">
-                  Kelola License
-                </Button>
-              </CardContent>
-            </Card>
-            
             <Card>
               <CardHeader>
                 <CardTitle>User Management</CardTitle>

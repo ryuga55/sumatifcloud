@@ -84,6 +84,7 @@ export default function AdminDashboard() {
 
   const handleSignOut = async () => {
     await signOut();
+    window.location.href = '/auth';
   };
 
   const pendingCount = pendingUsers.filter(user => !user.is_approved).length;
