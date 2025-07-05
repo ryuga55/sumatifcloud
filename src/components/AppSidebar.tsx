@@ -84,10 +84,10 @@ export function AppSidebar() {
                       to={item.url} 
                       end
                       className={({ isActive }) =>
-                        `flex items-center space-x-3 text-foreground ${
+                        `flex items-center space-x-3 font-poppins transition-colors ${
                           isActive 
-                            ? "bg-primary text-primary-foreground font-medium" 
-                            : ""
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium" 
+                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         }`
                       }
                     >
