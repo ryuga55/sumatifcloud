@@ -6,8 +6,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Footer } from "@/components/Footer";
-import { Users, GraduationCap, BookOpen, BarChart3, UserCheck, Target } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, BarChart3, UserCheck, Target, Star, Shield, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import logoImage from '@/assets/sumatif-cloud-logo.png';
 
 const Index = () => {
   const { user, profile, loading } = useAuth();
@@ -74,7 +75,8 @@ const Index = () => {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        navigate('/auth');
+        // Show landing page for non-authenticated users
+        return;
       } else if (!profile) {
         // Profile not loaded yet, wait
         return;
@@ -123,7 +125,166 @@ const Index = () => {
     );
   }
 
-  if (!user || !profile) {
+  // Show landing page for non-authenticated users
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Navigation */}
+        <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <img src={logoImage} alt="SUMATIF CLOUD" className="h-8 w-8" />
+                <div className="font-bold text-xl text-primary">SUMATIF CLOUD</div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button variant="ghost" onClick={() => navigate('/auth')}>
+                  Masuk
+                </Button>
+                <Button onClick={() => navigate('/auth')}>
+                  Daftar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero Section */}
+        <section className="relative py-20 sm:py-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-foreground mb-6">
+                <span className="text-primary">SUMATIF CLOUD</span>
+                <br />
+                Sistem Manajemen Sekolah Modern
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                Terhubung. Tersimpan. Tertata. Kelola seluruh kebutuhan administrasi sekolah Anda dengan mudah dan efisien.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button size="lg" className="text-lg px-8 py-3" onClick={() => navigate('/auth')}>
+                  Mulai Sekarang
+                </Button>
+                <Button size="lg" variant="outline" className="text-lg px-8 py-3">
+                  Pelajari Lebih Lanjut
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="py-20 bg-muted/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                Fitur Unggulan
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Solusi lengkap untuk mengelola semua aspek administrasi sekolah dalam satu platform terpadu
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Manajemen Siswa</CardTitle>
+                  <CardDescription>
+                    Kelola data siswa, kelas, dan informasi akademik dengan sistem yang terorganisir
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                    <BarChart3 className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Penilaian & Rapor</CardTitle>
+                  <CardDescription>
+                    Input nilai, bobot penilaian, dan generate rapor siswa secara otomatis
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                    <CheckCircle className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Absensi Digital</CardTitle>
+                  <CardDescription>
+                    Catat kehadiran siswa secara digital dengan laporan yang akurat dan real-time
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                    <BookOpen className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Jurnal Harian</CardTitle>
+                  <CardDescription>
+                    Dokumentasi kegiatan pembelajaran harian dengan materi dan metode yang digunakan
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                    <Shield className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Keamanan Data</CardTitle>
+                  <CardDescription>
+                    Data sekolah tersimpan aman dengan sistem backup otomatis dan enkripsi tingkat tinggi
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                    <Clock className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Akses 24/7</CardTitle>
+                  <CardDescription>
+                    Akses sistem kapan saja dan dimana saja dengan teknologi cloud yang handal
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-20">
+          <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+            <div className="bg-primary/5 rounded-2xl p-8 sm:p-12">
+              <Star className="h-12 w-12 text-primary mx-auto mb-6" />
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+                Siap Transformasi Digital Sekolah Anda?
+              </h2>
+              <p className="text-lg text-muted-foreground mb-8">
+                Bergabunglah dengan sekolah-sekolah yang telah merasakan kemudahan mengelola administrasi dengan SUMATIF CLOUD
+              </p>
+              <Button size="lg" className="text-lg px-8 py-3" onClick={() => navigate('/auth')}>
+                Mulai Gratis Sekarang
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!profile) {
     return null;
   }
 
