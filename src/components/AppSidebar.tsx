@@ -84,7 +84,7 @@ export function AppSidebar() {
                       to={item.url} 
                       end
                       className={({ isActive }) =>
-                        `flex items-center space-x-3 ${
+                        `flex items-center space-x-3 text-foreground ${
                           isActive 
                             ? "bg-primary text-primary-foreground font-medium" 
                             : ""

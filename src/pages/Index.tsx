@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,61 +6,69 @@ import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Users, GraduationCap, BookOpen, BarChart3, UserCheck, Target } from 'lucide-react';
-
-const dashboardCards = [
-  {
-    title: "Total Kelas",
-    description: "Semua kelas yang dikelola",
-    value: "0",
-    icon: Users,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50"
-  },
-  {
-    title: "Kelas Aktif", 
-    description: "Kelas yang sedang aktif",
-    value: "0",
-    icon: Target,
-    color: "text-green-600",
-    bgColor: "bg-green-50"
-  },
-  {
-    title: "Total Siswa",
-    description: "Semua siswa terdaftar",
-    value: "0", 
-    icon: GraduationCap,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50"
-  },
-  {
-    title: "Siswa Terdaftar",
-    description: "Siswa yang telah terdaftar",
-    value: "0",
-    icon: UserCheck,
-    color: "text-orange-600", 
-    bgColor: "bg-orange-50"
-  },
-  {
-    title: "Total Mata Pelajaran",
-    description: "Mata pelajaran tersedia",
-    value: "0",
-    icon: BookOpen,
-    color: "text-indigo-600",
-    bgColor: "bg-indigo-50"
-  },
-  {
-    title: "Total Kategori Nilai",
-    description: "Kategori penilaian yang ada",
-    value: "0",
-    icon: BarChart3,
-    color: "text-red-600",
-    bgColor: "bg-red-50"
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState({
+    totalClasses: 0,
+    activeClasses: 0,
+    totalStudents: 0,
+    totalSubjects: 0,
+    totalCategories: 0
+  });
+
+  const dashboardCards = [
+    {
+      title: "Total Kelas",
+      description: "Semua kelas yang dikelola",
+      value: dashboardData.totalClasses.toString(),
+      icon: Users,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50"
+    },
+    {
+      title: "Kelas Aktif", 
+      description: "Kelas yang sedang aktif",
+      value: dashboardData.activeClasses.toString(),
+      icon: Target,
+      color: "text-green-600",
+      bgColor: "bg-green-50"
+    },
+    {
+      title: "Total Siswa",
+      description: "Semua siswa terdaftar",
+      value: dashboardData.totalStudents.toString(), 
+      icon: GraduationCap,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50"
+    },
+    {
+      title: "Siswa Terdaftar",
+      description: "Siswa yang telah terdaftar",
+      value: dashboardData.totalStudents.toString(),
+      icon: UserCheck,
+      color: "text-orange-600", 
+      bgColor: "bg-orange-50"
+    },
+    {
+      title: "Total Mata Pelajaran",
+      description: "Mata pelajaran tersedia",
+      value: dashboardData.totalSubjects.toString(),
+      icon: BookOpen,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50"
+    },
+    {
+      title: "Total Kategori Nilai",
+      description: "Kategori penilaian yang ada",
+      value: dashboardData.totalCategories.toString(),
+      icon: BarChart3,
+      color: "text-red-600",
+      bgColor: "bg-red-50"
+    }
+  ];
 
   useEffect(() => {
     if (!loading) {
@@ -73,10 +81,35 @@ const Index = () => {
         navigate('/admin');
       } else if (profile.role === 'user' && !profile.is_approved) {
         navigate('/waiting-approval');
+      } else {
+        // If user is approved, fetch dashboard data
+        fetchDashboardData();
       }
-      // If user is approved, stay on dashboard
     }
   }, [user, profile, loading, navigate]);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [classesRes, studentsRes, subjectsRes, categoriesRes] = await Promise.all([
+        supabase.from('classes').select('id, is_active', { count: 'exact' }),
+        supabase.from('students').select('id', { count: 'exact' }),
+        supabase.from('subjects').select('id', { count: 'exact' }),
+        supabase.from('categories').select('id', { count: 'exact' })
+      ]);
+
+      const activeClasses = classesRes.data?.filter(c => c.is_active).length || 0;
+
+      setDashboardData({
+        totalClasses: classesRes.count || 0,
+        activeClasses,
+        totalStudents: studentsRes.count || 0,
+        totalSubjects: subjectsRes.count || 0,
+        totalCategories: categoriesRes.count || 0
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
 
   if (loading) {
     return (

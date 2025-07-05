@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,70 +9,105 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/AppSidebar";
 import { CalendarCheck, Download, UserCheck, UserX, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const RekapKehadiran = () => {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [selectedKelas, setSelectedKelas] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [classes, setClasses] = useState([]);
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock data - replace with actual data from Supabase
-  const classes = [
-    { id: '1', name: 'X IPA 1' },
-    { id: '2', name: 'X IPA 2' },
-    { id: '3', name: 'XI IPA 1' },
-  ];
+  useEffect(() => {
+    fetchClasses();
+  }, []);
 
-  const [attendanceData, setAttendanceData] = useState([
-    { 
-      id: '1', 
-      name: 'Ahmad Rizki', 
-      nis: '2024001',
-      hadir: 18,
-      sakit: 1,
-      izin: 0,
-      alfa: 0,
-      terlambat: 1,
-      total: 20,
-      percentage: 90
-    },
-    { 
-      id: '2', 
-      name: 'Siti Nurhaliza', 
-      nis: '2024002',
-      hadir: 20,
-      sakit: 0,
-      izin: 0,
-      alfa: 0,
-      terlambat: 0,
-      total: 20,
-      percentage: 100
-    },
-    { 
-      id: '3', 
-      name: 'Budi Santoso', 
-      nis: '2024003',
-      hadir: 17,
-      sakit: 2,
-      izin: 1,
-      alfa: 0,
-      terlambat: 0,
-      total: 20,
-      percentage: 85
-    },
-    { 
-      id: '4', 
-      name: 'Rina Dewi', 
-      nis: '2024004',
-      hadir: 19,
-      sakit: 0,
-      izin: 1,
-      alfa: 0,
-      terlambat: 0,
-      total: 20,
-      percentage: 95
-    },
-  ]);
+  useEffect(() => {
+    if (selectedKelas && startDate && endDate) {
+      fetchAttendanceData();
+    }
+  }, [selectedKelas, startDate, endDate]);
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data kelas",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchAttendanceData = async () => {
+    setLoading(true);
+    try {
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', selectedKelas)
+        .order('name');
+
+      if (studentsError) throw studentsError;
+
+      const { data: attendanceRecords, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*')
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .in('student_id', studentsData.map(s => s.id));
+
+      if (attendanceError) throw attendanceError;
+
+      const attendanceSummary = studentsData.map(student => {
+        const studentAttendance = attendanceRecords.filter(a => a.student_id === student.id);
+        
+        const hadir = studentAttendance.filter(a => a.status === 'hadir').length;
+        const sakit = studentAttendance.filter(a => a.status === 'sakit').length;
+        const izin = studentAttendance.filter(a => a.status === 'izin').length;
+        const alfa = studentAttendance.filter(a => a.status === 'alfa').length;
+        const terlambat = studentAttendance.filter(a => a.status === 'terlambat').length;
+        
+        const total = studentAttendance.length;
+        const percentage = total > 0 ? Math.round((hadir / total) * 100) : 0;
+
+        return {
+          id: student.id,
+          name: student.name,
+          nis: student.nis,
+          hadir,
+          sakit,
+          izin,
+          alfa,
+          terlambat,
+          total,
+          percentage
+        };
+      });
+
+      setAttendanceData(attendanceSummary);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data kehadiran",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showAttendanceTable = selectedKelas && startDate && endDate;
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,26 +9,85 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/AppSidebar";
 import { Calendar, Save, UserCheck, UserX, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const InputKehadiran = () => {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [selectedKelas, setSelectedKelas] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
+  const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock data - replace with actual data from Supabase
-  const classes = [
-    { id: '1', name: 'X IPA 1' },
-    { id: '2', name: 'X IPA 2' },
-    { id: '3', name: 'XI IPA 1' },
-  ];
+  useEffect(() => {
+    fetchClasses();
+  }, []);
 
-  const [students, setStudents] = useState([
-    { id: '1', name: 'Ahmad Rizki', nis: '2024001', status: 'hadir' },
-    { id: '2', name: 'Siti Nurhaliza', nis: '2024002', status: 'hadir' },
-    { id: '3', name: 'Budi Santoso', nis: '2024003', status: 'hadir' },
-    { id: '4', name: 'Rina Dewi', nis: '2024004', status: 'hadir' },
-    { id: '5', name: 'Joko Widodo', nis: '2024005', status: 'hadir' },
-  ]);
+  useEffect(() => {
+    if (selectedKelas && selectedDate) {
+      fetchStudentsAndAttendance();
+    }
+  }, [selectedKelas, selectedDate]);
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data kelas",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchStudentsAndAttendance = async () => {
+    setLoading(true);
+    try {
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', selectedKelas)
+        .order('name');
+
+      if (studentsError) throw studentsError;
+
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('date', selectedDate)
+        .in('student_id', studentsData.map(s => s.id));
+
+      if (attendanceError) throw attendanceError;
+
+      const studentsWithAttendance = studentsData.map(student => {
+        const attendance = attendanceData.find(a => a.student_id === student.id);
+        return {
+          ...student,
+          status: attendance?.status || 'hadir'
+        };
+      });
+
+      setStudents(studentsWithAttendance);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data siswa dan kehadiran",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const attendanceOptions = [
     { value: 'hadir', label: 'Hadir', icon: UserCheck, color: 'text-green-600' },
@@ -52,10 +111,37 @@ const InputKehadiran = () => {
     return attendanceOptions.find(option => option.value === status);
   };
 
-  const handleSaveAll = () => {
-    // Logic to save attendance data to Supabase
-    console.log('Saving attendance for date:', selectedDate);
-    console.log('Students attendance:', students);
+  const handleSaveAll = async () => {
+    setLoading(true);
+    try {
+      const attendanceRecords = students.map(student => ({
+        student_id: student.id,
+        date: selectedDate,
+        status: student.status,
+        user_id: profile.user_id
+      }));
+
+      const { error } = await supabase
+        .from('attendance')
+        .upsert(attendanceRecords, {
+          onConflict: 'student_id,date'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil",
+        description: "Data kehadiran berhasil disimpan",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan data kehadiran",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

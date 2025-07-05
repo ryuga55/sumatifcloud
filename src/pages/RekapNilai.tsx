@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,67 +8,155 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/AppSidebar";
 import { FileText, Download, FileSpreadsheet } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const RekapNilai = () => {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [selectedKelas, setSelectedKelas] = useState('');
   const [selectedMapel, setSelectedMapel] = useState('');
+  const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [studentGrades, setStudentGrades] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [weights, setWeights] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock data - replace with actual data from Supabase
-  const classes = [
-    { id: '1', name: 'X IPA 1' },
-    { id: '2', name: 'X IPA 2' },
-    { id: '3', name: 'XI IPA 1' },
-  ];
+  useEffect(() => {
+    fetchClasses();
+    fetchSubjects();
+    fetchCategories();
+  }, []);
 
-  const subjects = [
-    { id: '1', name: 'Matematika' },
-    { id: '2', name: 'Fisika' },
-    { id: '3', name: 'Kimia' },
-  ];
+  useEffect(() => {
+    if (selectedKelas && selectedMapel) {
+      fetchStudentGrades();
+    }
+  }, [selectedKelas, selectedMapel]);
 
-  const [studentGrades, setStudentGrades] = useState([
-    { 
-      id: '1', 
-      name: 'Ahmad Rizki', 
-      nis: '2024001',
-      tugas: 85,
-      ulangan: 78,
-      uts: 82,
-      uas: 88,
-      final: 83.2
-    },
-    { 
-      id: '2', 
-      name: 'Siti Nurhaliza', 
-      nis: '2024002',
-      tugas: 90,
-      ulangan: 85,
-      uts: 87,
-      uas: 92,
-      final: 88.5
-    },
-    { 
-      id: '3', 
-      name: 'Budi Santoso', 
-      nis: '2024003',
-      tugas: 75,
-      ulangan: 80,
-      uts: 78,
-      uas: 85,
-      final: 79.8
-    },
-    { 
-      id: '4', 
-      name: 'Rina Dewi', 
-      nis: '2024004',
-      tugas: 88,
-      ulangan: 82,
-      uts: 85,
-      uas: 90,
-      final: 86.2
-    },
-  ]);
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data kelas",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchSubjects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setSubjects(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data mata pelajaran",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data: categoriesData, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setCategories(categoriesData || []);
+
+      const { data: weightsData, error: weightsError } = await supabase
+        .from('weights')
+        .select('*');
+
+      if (weightsError) throw weightsError;
+      setWeights(weightsData || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data kategori",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchStudentGrades = async () => {
+    setLoading(true);
+    try {
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', selectedKelas)
+        .order('name');
+
+      if (studentsError) throw studentsError;
+
+      const { data: scoresData, error: scoresError } = await supabase
+        .from('scores')
+        .select('*, categories(*)')
+        .eq('subject_id', selectedMapel)
+        .in('student_id', studentsData.map(s => s.id));
+
+      if (scoresError) throw scoresError;
+
+      const studentGradesWithCalculation = studentsData.map(student => {
+        const studentScores = scoresData.filter(s => s.student_id === student.id);
+        
+        const categoryAverages = {};
+        categories.forEach(category => {
+          const categoryScores = studentScores.filter(s => s.category_id === category.id);
+          if (categoryScores.length > 0) {
+            categoryAverages[category.name] = categoryScores.reduce((sum, score) => sum + score.score, 0) / categoryScores.length;
+          } else {
+            categoryAverages[category.name] = 0;
+          }
+        });
+
+        let finalScore = 0;
+        categories.forEach(category => {
+          const weight = weights.find(w => w.category_id === category.id);
+          if (weight) {
+            finalScore += (categoryAverages[category.name] * weight.weight_percent) / 100;
+          }
+        });
+
+        return {
+          id: student.id,
+          name: student.name,
+          nis: student.nis,
+          ...categoryAverages,
+          final: finalScore.toFixed(1)
+        };
+      });
+
+      setStudentGrades(studentGradesWithCalculation);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data nilai siswa",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showGradesTable = selectedKelas && selectedMapel;
 
