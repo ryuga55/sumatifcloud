@@ -57,7 +57,7 @@ const InputKehadiran = () => {
         .from('students')
         .select('*')
         .eq('class_id', selectedKelas)
-        .order('name');
+        .order('name', { ascending: true });
 
       if (studentsError) throw studentsError;
 
