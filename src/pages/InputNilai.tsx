@@ -77,7 +77,7 @@ const InputNilai = () => {
         .from('students')
         .select('*')
         .eq('class_id', selectedKelas)
-        .order('name');
+        .order('name', { ascending: true });
 
       if (error) throw error;
       setStudents(data || []);
