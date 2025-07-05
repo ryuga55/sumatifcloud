@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,32 +9,152 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/AppSidebar";
 import { Plus, Users, Edit, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Kelas = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [namaKelas, setNamaKelas] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingClass, setEditingClass] = useState<any>(null);
 
-  // Mock data - replace with actual data from Supabase
-  const [classes, setClasses] = useState([
-    { id: '1', name: 'X IPA 1', is_active: true },
-    { id: '2', name: 'X IPA 2', is_active: true },
-    { id: '3', name: 'XI IPA 1', is_active: false },
-  ]);
+  useEffect(() => {
+    if (user) {
+      fetchClasses();
+    }
+  }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load classes",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Add logic to save to Supabase
-    const newClass = {
-      id: Date.now().toString(),
-      name: namaKelas,
-      is_active: isActive
-    };
-    setClasses([...classes, newClass]);
-    setNamaKelas('');
-    setIsActive(true);
-    setIsDialogOpen(false);
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .insert([
+          {
+            name: namaKelas,
+            is_active: isActive,
+            user_id: user.id
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+
+      setClasses([...classes, data[0]]);
+      setNamaKelas('');
+      setIsActive(true);
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Class added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding class:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add class",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (kelas: any) => {
+    setEditingClass(kelas);
+    setNamaKelas(kelas.name);
+    setIsActive(kelas.is_active);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClass) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .update({
+          name: namaKelas,
+          is_active: isActive
+        })
+        .eq('id', editingClass.id)
+        .select();
+
+      if (error) throw error;
+
+      setClasses(classes.map(c => c.id === editingClass.id ? data[0] : c));
+      setEditDialogOpen(false);
+      setEditingClass(null);
+      setNamaKelas('');
+      setIsActive(true);
+      
+      toast({
+        title: "Success",
+        description: "Class updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating class:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update class",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this class?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setClasses(classes.filter(c => c.id !== id));
+      
+      toast({
+        title: "Success",
+        description: "Class deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete class",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -106,33 +226,82 @@ const Kelas = () => {
               </Dialog>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {classes.map((kelas) => (
-                <Card key={kelas.id}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-base font-medium">
-                      {kelas.name}
-                    </CardTitle>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Loading classes...</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {classes.map((kelas) => (
+                  <Card key={kelas.id}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-base font-medium">
+                        {kelas.name}
+                      </CardTitle>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(kelas)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDelete(kelas.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Status: {kelas.is_active ? 'Aktif' : 'Tidak Aktif'}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                {classes.length === 0 && (
+                  <div className="col-span-full text-center py-8 text-muted-foreground">
+                    No classes found. Add your first class to get started.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Edit Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Kelas</DialogTitle>
+                  <DialogDescription>
+                    Update informasi kelas
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleUpdate}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-nama">Nama Kelas</Label>
+                      <Input
+                        id="edit-nama"
+                        value={namaKelas}
+                        onChange={(e) => setNamaKelas(e.target.value)}
+                        placeholder="Contoh: X IPA 1"
+                        required
+                      />
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Status: {kelas.is_active ? 'Aktif' : 'Tidak Aktif'}
-                      </span>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="edit-active"
+                        checked={isActive}
+                        onCheckedChange={setIsActive}
+                      />
+                      <Label htmlFor="edit-active">Kelas Aktif</Label>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Update</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </main>
         </SidebarInset>
       </div>
