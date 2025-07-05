@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 const Siswa = () => {
   const { profile, user } = useAuth();
@@ -186,6 +187,82 @@ const Siswa = () => {
     }
   };
 
+  const handleExcelImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      // Skip header row and process data
+      const rows = jsonData.slice(1) as any[][];
+      const studentsToImport = [];
+
+      for (const row of rows) {
+        const [name, nis, className] = row;
+        if (!name || !nis || !className) continue;
+
+        // Find class by name
+        const matchingClass = classes.find(c => c.name.toLowerCase() === className.toLowerCase());
+        if (!matchingClass) {
+          toast({
+            title: "Warning",
+            description: `Class "${className}" not found for student ${name}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        studentsToImport.push({
+          name: name.toString(),
+          nis: nis.toString(),
+          class_id: matchingClass.id,
+          user_id: user.id
+        });
+      }
+
+      if (studentsToImport.length === 0) {
+        toast({
+          title: "Error",
+          description: "No valid data found in Excel file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Insert students in batch
+      const { data: insertedData, error } = await supabase
+        .from('students')
+        .insert(studentsToImport)
+        .select(`
+          *,
+          classes(name)
+        `);
+
+      if (error) throw error;
+
+      setStudents([...students, ...insertedData]);
+      
+      toast({
+        title: "Success",
+        description: `${insertedData.length} students imported successfully`,
+      });
+
+      // Reset file input
+      event.target.value = '';
+    } catch (error) {
+      console.error('Error importing Excel:', error);
+      toast({
+        title: "Error",
+        description: "Failed to import Excel file",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -213,10 +290,17 @@ const Siswa = () => {
               </div>
               
               <div className="flex gap-2">
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => document.getElementById('excel-input')?.click()}>
                   <Upload className="mr-2 h-4 w-4" />
                   Import Excel
                 </Button>
+                <input
+                  id="excel-input"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleExcelImport}
+                  className="hidden"
+                />
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>

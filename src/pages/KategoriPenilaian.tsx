@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,33 +10,152 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Plus, BarChart3, Edit, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const KategoriPenilaian = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [namaKategori, setNamaKategori] = useState('');
   const [deskripsi, setDeskripsi] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
 
-  // Mock data - replace with actual data from Supabase
-  const [categories, setCategories] = useState([
-    { id: '1', name: 'Tugas Harian', description: 'Penilaian dari tugas-tugas yang diberikan setiap hari' },
-    { id: '2', name: 'Ulangan Harian', description: 'Penilaian dari ulangan harian per bab atau materi' },
-    { id: '3', name: 'Ujian Tengah Semester', description: 'Penilaian dari ujian tengah semester' },
-    { id: '4', name: 'Ujian Akhir Semester', description: 'Penilaian dari ujian akhir semester' },
-    { id: '5', name: 'Praktikum', description: 'Penilaian dari kegiatan praktikum' },
-  ]);
+  useEffect(() => {
+    if (user) {
+      fetchCategories();
+    }
+  }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load categories",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newCategory = {
-      id: Date.now().toString(),
-      name: namaKategori,
-      description: deskripsi
-    };
-    setCategories([...categories, newCategory]);
-    setNamaKategori('');
-    setDeskripsi('');
-    setIsDialogOpen(false);
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([
+          {
+            name: namaKategori,
+            description: deskripsi,
+            user_id: user.id
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+
+      setCategories([...categories, data[0]]);
+      setNamaKategori('');
+      setDeskripsi('');
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Category added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (category: any) => {
+    setEditingCategory(category);
+    setNamaKategori(category.name);
+    setDeskripsi(category.description || '');
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .update({
+          name: namaKategori,
+          description: deskripsi
+        })
+        .eq('id', editingCategory.id)
+        .select();
+
+      if (error) throw error;
+
+      setCategories(categories.map(c => c.id === editingCategory.id ? data[0] : c));
+      setEditDialogOpen(false);
+      setEditingCategory(null);
+      setNamaKategori('');
+      setDeskripsi('');
+      
+      toast({
+        title: "Success",
+        description: "Category updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setCategories(categories.filter(c => c.id !== id));
+      
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -118,44 +237,97 @@ const KategoriPenilaian = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama Kategori</TableHead>
-                      <TableHead>Deskripsi</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {categories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                            {category.name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-md">
-                          <p className="text-sm text-muted-foreground truncate">
-                            {category.description}
-                          </p>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading categories...</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nama Kategori</TableHead>
+                        <TableHead>Deskripsi</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {categories.map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                              {category.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-md">
+                            <p className="text-sm text-muted-foreground truncate">
+                              {category.description}
+                            </p>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleEdit(category)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleDelete(category.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {categories.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                            No categories found. Add your first category to get started.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
+
+            {/* Edit Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Kategori Penilaian</DialogTitle>
+                  <DialogDescription>
+                    Update informasi kategori penilaian
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleUpdate}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-nama">Nama Kategori</Label>
+                      <Input
+                        id="edit-nama"
+                        value={namaKategori}
+                        onChange={(e) => setNamaKategori(e.target.value)}
+                        placeholder="Contoh: Tugas Harian"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-deskripsi">Deskripsi</Label>
+                      <Textarea
+                        id="edit-deskripsi"
+                        value={deskripsi}
+                        onChange={(e) => setDeskripsi(e.target.value)}
+                        placeholder="Deskripsi kategori penilaian"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Update</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </main>
         </SidebarInset>
       </div>

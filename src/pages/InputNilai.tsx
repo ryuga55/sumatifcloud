@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,44 +10,116 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Plus, ClipboardList, Save, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const InputNilai = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   const [selectedKelas, setSelectedKelas] = useState('');
   const [selectedMapel, setSelectedMapel] = useState('');
   const [selectedKategori, setSelectedKategori] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [namaAssessment, setNamaAssessment] = useState('');
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [scores, setScores] = useState<{[key: string]: {[key: string]: number}}>({});
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual data from Supabase
-  const classes = [
-    { id: '1', name: 'X IPA 1' },
-    { id: '2', name: 'X IPA 2' },
-    { id: '3', name: 'XI IPA 1' },
-  ];
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
-  const subjects = [
-    { id: '1', name: 'Matematika' },
-    { id: '2', name: 'Fisika' },
-    { id: '3', name: 'Kimia' },
-  ];
+  useEffect(() => {
+    if (selectedKelas && selectedMapel && selectedKategori) {
+      fetchStudents();
+      fetchExistingScores();
+    }
+  }, [selectedKelas, selectedMapel, selectedKategori]);
 
-  const categories = [
-    { id: '1', name: 'Tugas Harian' },
-    { id: '2', name: 'Ulangan Harian' },
-    { id: '3', name: 'Ujian Tengah Semester' },
-  ];
+  const fetchData = async () => {
+    try {
+      const [classesData, subjectsData, categoriesData] = await Promise.all([
+        supabase.from('classes').select('*').eq('is_active', true).order('name'),
+        supabase.from('subjects').select('*').order('name'),
+        supabase.from('categories').select('*').order('name')
+      ]);
 
-  const [assessments, setAssessments] = useState([
-    { id: '1', name: 'UH1 - Aljabar', category: 'Ulangan Harian' },
-    { id: '2', name: 'Tugas Kelompok', category: 'Tugas Harian' },
-  ]);
+      if (classesData.error) throw classesData.error;
+      if (subjectsData.error) throw subjectsData.error;
+      if (categoriesData.error) throw categoriesData.error;
 
-  const [students, setStudents] = useState([
-    { id: '1', name: 'Ahmad Rizki', nis: '2024001', scores: { '1': 85, '2': 90 } },
-    { id: '2', name: 'Siti Nurhaliza', nis: '2024002', scores: { '1': 78, '2': 85 } },
-    { id: '3', name: 'Budi Santoso', nis: '2024003', scores: { '1': 92, '2': 88 } },
-  ]);
+      setClasses(classesData.data || []);
+      setSubjects(subjectsData.data || []);
+      setCategories(categoriesData.data || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStudents = async () => {
+    if (!selectedKelas) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('class_id', selectedKelas)
+        .order('name');
+
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    }
+  };
+
+  const fetchExistingScores = async () => {
+    if (!selectedKelas || !selectedMapel || !selectedKategori) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('scores')
+        .select('*')
+        .eq('subject_id', selectedMapel)
+        .eq('category_id', selectedKategori);
+
+      if (error) throw error;
+
+      // Group scores by student and assessment
+      const scoresMap: {[key: string]: {[key: string]: number}} = {};
+      data?.forEach(score => {
+        if (!scoresMap[score.student_id]) {
+          scoresMap[score.student_id] = {};
+        }
+        scoresMap[score.student_id][score.assessment_name] = score.score;
+      });
+
+      setScores(scoresMap);
+
+      // Get unique assessment names
+      const uniqueAssessments = [...new Set(data?.map(score => score.assessment_name) || [])];
+      setAssessments(uniqueAssessments.map((name, index) => ({
+        id: (index + 1).toString(),
+        name: name,
+        category: categories.find(c => c.id === selectedKategori)?.name || ''
+      })));
+    } catch (error) {
+      console.error('Error fetching scores:', error);
+    }
+  };
 
   const handleAddAssessment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,12 +134,86 @@ const InputNilai = () => {
     setIsDialogOpen(false);
   };
 
-  const updateScore = (studentId: string, assessmentId: string, score: number) => {
-    setStudents(students.map(student => 
-      student.id === studentId 
-        ? { ...student, scores: { ...student.scores, [assessmentId]: score } }
-        : student
-    ));
+  const updateScore = (studentId: string, assessmentName: string, score: number) => {
+    setScores(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        [assessmentName]: score
+      }
+    }));
+  };
+
+  const saveAllScores = async () => {
+    if (!user || !selectedMapel || !selectedKategori) return;
+
+    try {
+      const scoresToSave = [];
+      
+      for (const student of students) {
+        for (const assessment of assessments) {
+          const score = scores[student.id]?.[assessment.name];
+          if (score !== undefined && score !== null && score !== 0) {
+            scoresToSave.push({
+              student_id: student.id,
+              subject_id: selectedMapel,
+              category_id: selectedKategori,
+              assessment_name: assessment.name,
+              score: score,
+              user_id: user.id
+            });
+          }
+        }
+      }
+
+      if (scoresToSave.length === 0) {
+        toast({
+          title: "Warning",
+          description: "No scores to save",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Delete existing scores first
+      await supabase
+        .from('scores')
+        .delete()
+        .eq('subject_id', selectedMapel)
+        .eq('category_id', selectedKategori);
+
+      // Insert new scores
+      const { error } = await supabase
+        .from('scores')
+        .insert(scoresToSave);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "All scores saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving scores:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save scores",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteAssessment = (assessmentName: string) => {
+    if (!confirm('Are you sure you want to delete this assessment?')) return;
+    
+    setAssessments(assessments.filter(a => a.name !== assessmentName));
+    
+    // Remove scores for this assessment
+    const newScores = { ...scores };
+    Object.keys(newScores).forEach(studentId => {
+      delete newScores[studentId][assessmentName];
+    });
+    setScores(newScores);
   };
 
   const showStudentTable = selectedKelas && selectedMapel && selectedKategori;
@@ -205,7 +351,12 @@ const InputNilai = () => {
                     {assessments.map((assessment) => (
                       <div key={assessment.id} className="flex items-center gap-2 bg-muted px-3 py-1 rounded-md">
                         <span className="text-sm">{assessment.name}</span>
-                        <Button variant="ghost" size="sm" className="h-auto p-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-auto p-1"
+                          onClick={() => deleteAssessment(assessment.name)}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -225,7 +376,7 @@ const InputNilai = () => {
                       Masukkan nilai untuk setiap siswa dan jenis penilaian
                     </CardDescription>
                   </div>
-                  <Button>
+                  <Button onClick={saveAllScores}>
                     <Save className="mr-2 h-4 w-4" />
                     Simpan Semua
                   </Button>
@@ -254,8 +405,8 @@ const InputNilai = () => {
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={student.scores[assessment.id] || ''}
-                                onChange={(e) => updateScore(student.id, assessment.id, parseInt(e.target.value) || 0)}
+                                value={scores[student.id]?.[assessment.name] || ''}
+                                onChange={(e) => updateScore(student.id, assessment.name, parseInt(e.target.value) || 0)}
                                 className="w-16 text-center"
                                 placeholder="0"
                               />

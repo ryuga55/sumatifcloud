@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,45 +11,176 @@ import { Plus, Scale, Edit, Trash2, AlertCircle, CheckCircle } from 'lucide-reac
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const BobotPenilaian = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [kategoriId, setKategoriId] = useState('');
   const [bobot, setBobot] = useState('');
+  const [weights, setWeights] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingWeight, setEditingWeight] = useState<any>(null);
 
-  // Mock data - replace with actual data from Supabase
-  const [weights, setWeights] = useState([
-    { id: '1', category_id: '1', category_name: 'Tugas Harian', weight_percent: 25 },
-    { id: '2', category_id: '2', category_name: 'Ulangan Harian', weight_percent: 35 },
-    { id: '3', category_id: '3', category_name: 'Ujian Tengah Semester', weight_percent: 20 },
-    { id: '4', category_id: '4', category_name: 'Ujian Akhir Semester', weight_percent: 20 },
-  ]);
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
-  const categories = [
-    { id: '1', name: 'Tugas Harian' },
-    { id: '2', name: 'Ulangan Harian' },
-    { id: '3', name: 'Ujian Tengah Semester' },
-    { id: '4', name: 'Ujian Akhir Semester' },
-    { id: '5', name: 'Praktikum' },
-  ];
+  const fetchData = async () => {
+    try {
+      // Fetch weights with category information
+      const { data: weightsData, error: weightsError } = await supabase
+        .from('weights')
+        .select(`
+          *,
+          categories(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (weightsError) throw weightsError;
+
+      // Fetch categories for dropdown
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (categoriesError) throw categoriesError;
+
+      setWeights(weightsData || []);
+      setCategories(categoriesData || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const totalBobot = weights.reduce((sum, weight) => sum + weight.weight_percent, 0);
   const isValidTotal = totalBobot === 100;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedCategory = categories.find(c => c.id === kategoriId);
-    const newWeight = {
-      id: Date.now().toString(),
-      category_id: kategoriId,
-      category_name: selectedCategory?.name || '',
-      weight_percent: parseInt(bobot)
-    };
-    setWeights([...weights, newWeight]);
-    setKategoriId('');
-    setBobot('');
-    setIsDialogOpen(false);
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('weights')
+        .insert([
+          {
+            category_id: kategoriId,
+            weight_percent: parseInt(bobot),
+            user_id: user.id
+          }
+        ])
+        .select(`
+          *,
+          categories(name)
+        `);
+
+      if (error) throw error;
+
+      setWeights([...weights, data[0]]);
+      setKategoriId('');
+      setBobot('');
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Weight added successfully",
+      });
+    } catch (error) {
+      console.error('Error adding weight:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add weight",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = (weight: any) => {
+    setEditingWeight(weight);
+    setKategoriId(weight.category_id);
+    setBobot(weight.weight_percent.toString());
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWeight) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('weights')
+        .update({
+          category_id: kategoriId,
+          weight_percent: parseInt(bobot)
+        })
+        .eq('id', editingWeight.id)
+        .select(`
+          *,
+          categories(name)
+        `);
+
+      if (error) throw error;
+
+      setWeights(weights.map(w => w.id === editingWeight.id ? data[0] : w));
+      setEditDialogOpen(false);
+      setEditingWeight(null);
+      setKategoriId('');
+      setBobot('');
+      
+      toast({
+        title: "Success",
+        description: "Weight updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating weight:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update weight",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this weight?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('weights')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setWeights(weights.filter(w => w.id !== id));
+      
+      toast({
+        title: "Success",
+        description: "Weight deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting weight:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete weight",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -154,51 +285,114 @@ const BobotPenilaian = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Kategori Penilaian</TableHead>
-                      <TableHead>Bobot (%)</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {weights.map((weight) => (
-                      <TableRow key={weight.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <Scale className="h-4 w-4 text-muted-foreground" />
-                            {weight.category_name}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-semibold">{weight.weight_percent}%</span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading weights...</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Kategori Penilaian</TableHead>
+                        <TableHead>Bobot (%)</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
                       </TableRow>
-                    ))}
-                    <TableRow className="font-semibold bg-muted/50">
-                      <TableCell>Total</TableCell>
-                      <TableCell>
-                        <span className={isValidTotal ? "text-green-600" : "text-orange-600"}>
-                          {totalBobot}%
-                        </span>
-                      </TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {weights.map((weight) => (
+                        <TableRow key={weight.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Scale className="h-4 w-4 text-muted-foreground" />
+                              {weight.categories?.name || 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-semibold">{weight.weight_percent}%</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleEdit(weight)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleDelete(weight.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {weights.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                            No weights found. Add your first weight to get started.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {weights.length > 0 && (
+                        <TableRow className="font-semibold bg-muted/50">
+                          <TableCell>Total</TableCell>
+                          <TableCell>
+                            <span className={isValidTotal ? "text-green-600" : "text-orange-600"}>
+                              {totalBobot}%
+                            </span>
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
+
+            {/* Edit Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Bobot Penilaian</DialogTitle>
+                  <DialogDescription>
+                    Update bobot untuk kategori penilaian
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleUpdate}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-kategori">Kategori Penilaian</Label>
+                      <Select value={kategoriId} onValueChange={setKategoriId} required>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih kategori" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-bobot">Bobot (%)</Label>
+                      <Input
+                        id="edit-bobot"
+                        type="number"
+                        value={bobot}
+                        onChange={(e) => setBobot(e.target.value)}
+                        placeholder="Contoh: 25"
+                        min="1"
+                        max="100"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Update</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </main>
         </SidebarInset>
       </div>
