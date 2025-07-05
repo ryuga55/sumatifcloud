@@ -4,12 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Clock, UserCheck } from 'lucide-react';
 import { WhatsAppContact } from '@/components/WhatsAppContact';
+import { useNavigate } from 'react-router-dom';
 
 export default function WaitingApproval() {
   const { signOut, profile } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
+    navigate('/auth');
   };
 
   return (
