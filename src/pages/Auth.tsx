@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Footer } from '@/components/Footer';
-import { Loader2, GraduationCap } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import sumatifLogo from '@/assets/sumatif-cloud-logo.png';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -106,13 +107,13 @@ export default function Auth() {
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto h-12 w-12 bg-primary rounded-full flex items-center justify-center">
-            <GraduationCap className="h-6 w-6 text-primary-foreground" />
+          <div className="mx-auto">
+            <img src={sumatifLogo} alt="SUMATIF CLOUD" className="h-16 w-16 mx-auto" />
           </div>
           <div>
-            <CardTitle className="text-2xl">School SaaS</CardTitle>
+            <CardTitle className="text-2xl text-primary">SUMATIF CLOUD</CardTitle>
             <CardDescription>
-              Sistem Manajemen Nilai dan Kehadiran Siswa
+              Terhubung. Tersimpan. Tertata.
             </CardDescription>
           </div>
         </CardHeader>
