@@ -6,9 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Footer } from "@/components/Footer";
-import { Users, GraduationCap, BookOpen, BarChart3, UserCheck, Target, Star, Shield, Clock, CheckCircle } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, BarChart3, UserCheck, Target, Star, Shield, Clock, CheckCircle, School } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import logoImage from '@/assets/sumatif-cloud-logo.png';
 
 const Index = () => {
   const { user, profile, loading } = useAuth();
@@ -134,7 +133,7 @@ const Index = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-3">
-                <img src={logoImage} alt="SUMATIF CLOUD" className="h-8 w-8" />
+                <School className="h-8 w-8 text-primary" />
                 <div className="font-bold text-xl text-primary">SUMATIF CLOUD</div>
               </div>
               <div className="flex items-center space-x-4">
@@ -153,19 +152,19 @@ const Index = () => {
         <section className="relative py-20 sm:py-32">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="max-w-4xl mx-auto">
-              <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-foreground mb-6">
+              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-foreground mb-6">
                 <span className="text-primary">SUMATIF CLOUD</span>
                 <br />
                 Sistem Manajemen Sekolah Modern
               </h1>
-              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Terhubung. Tersimpan. Tertata. Kelola seluruh kebutuhan administrasi sekolah Anda dengan mudah dan efisien.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="text-lg px-8 py-3" onClick={() => navigate('/auth')}>
+                <Button size="lg" className="px-8 py-3" onClick={() => navigate('/auth')}>
                   Mulai Sekarang
                 </Button>
-                <Button size="lg" variant="outline" className="text-lg px-8 py-3">
+                <Button size="lg" variant="outline" className="px-8 py-3">
                   Pelajari Lebih Lanjut
                 </Button>
               </div>
@@ -177,10 +176,10 @@ const Index = () => {
         <section className="py-20 bg-muted/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
                 Fitur Unggulan
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-muted-foreground max-w-2xl mx-auto">
                 Solusi lengkap untuk mengelola semua aspek administrasi sekolah dalam satu platform terpadu
               </p>
             </div>
@@ -266,13 +265,13 @@ const Index = () => {
           <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
             <div className="bg-primary/5 rounded-2xl p-8 sm:p-12">
               <Star className="h-12 w-12 text-primary mx-auto mb-6" />
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
                 Siap Transformasi Digital Sekolah Anda?
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-muted-foreground mb-8">
                 Bergabunglah dengan sekolah-sekolah yang telah merasakan kemudahan mengelola administrasi dengan SUMATIF CLOUD
               </p>
-              <Button size="lg" className="text-lg px-8 py-3" onClick={() => navigate('/auth')}>
+              <Button size="lg" className="px-8 py-3" onClick={() => navigate('/auth')}>
                 Mulai Gratis Sekarang
               </Button>
             </div>
