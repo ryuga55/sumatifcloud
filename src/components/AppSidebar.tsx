@@ -87,7 +87,7 @@ export function AppSidebar() {
                         `flex items-center space-x-3 ${
                           isActive 
                             ? "bg-primary text-primary-foreground font-medium" 
-                            : "hover:bg-accent hover:text-accent-foreground"
+                            : ""
                         }`
                       }
                     >
