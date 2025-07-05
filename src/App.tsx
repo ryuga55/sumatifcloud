@@ -16,6 +16,7 @@ import KategoriPenilaian from "./pages/KategoriPenilaian";
 import BobotPenilaian from "./pages/BobotPenilaian";
 import InputNilai from "./pages/InputNilai";
 import InputKehadiran from "./pages/InputKehadiran";
+import JurnalHarian from "./pages/JurnalHarian";
 import RekapNilai from "./pages/RekapNilai";
 import RekapKehadiran from "./pages/RekapKehadiran";
 import Data from "./pages/Data";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/bobot-penilaian" element={<BobotPenilaian />} />
             <Route path="/input-nilai" element={<InputNilai />} />
             <Route path="/input-kehadiran" element={<InputKehadiran />} />
+            <Route path="/jurnal-harian" element={<JurnalHarian />} />
             <Route path="/rekap-nilai" element={<RekapNilai />} />
             <Route path="/rekap-kehadiran" element={<RekapKehadiran />} />
             <Route path="/data" element={<Data />} />

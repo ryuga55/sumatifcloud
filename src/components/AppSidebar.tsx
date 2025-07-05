@@ -11,7 +11,8 @@ import {
   CalendarCheck,
   Database,
   LogOut,
-  Home
+  Home,
+  NotebookPen
 } from "lucide-react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
@@ -40,6 +41,7 @@ const menuItems = [
   { title: "Bobot Penilaian", url: "/bobot-penilaian", icon: Scale },
   { title: "Input Nilai", url: "/input-nilai", icon: ClipboardList },
   { title: "Input Kehadiran", url: "/input-kehadiran", icon: Calendar },
+  { title: "Jurnal Harian", url: "/jurnal-harian", icon: NotebookPen },
   { title: "Rekap Nilai", url: "/rekap-nilai", icon: FileText },
   { title: "Rekap Kehadiran", url: "/rekap-kehadiran", icon: CalendarCheck },
   { title: "Data", url: "/data", icon: Database },

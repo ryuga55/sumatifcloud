@@ -101,6 +101,48 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_journals: {
+        Row: {
+          class_id: string
+          created_at: string
+          date: string
+          id: string
+          material: string
+          method: string
+          students_present: number
+          subject_id: string
+          teacher_notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          date: string
+          id?: string
+          material: string
+          method: string
+          students_present?: number
+          subject_id: string
+          teacher_notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          material?: string
+          method?: string
+          students_present?: number
+          subject_id?: string
+          teacher_notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
