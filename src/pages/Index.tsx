@@ -13,9 +13,17 @@ const Index = () => {
     if (!loading) {
       if (!user) {
         navigate('/auth');
-      } else if (profile && !profile.is_verified && profile.role === 'user') {
+      } else if (!profile) {
+        // Profile not loaded yet, wait
+        return;
+      } else if (profile.role === 'admin') {
+        navigate('/admin');
+      } else if (profile.role === 'user' && !profile.is_approved) {
+        navigate('/waiting-approval');
+      } else if (profile.role === 'user' && profile.is_approved && !profile.is_verified) {
         navigate('/license');
       }
+      // If user is approved and verified, stay on dashboard
     }
   }, [user, profile, loading, navigate]);
 

@@ -8,6 +8,7 @@ interface Profile {
   full_name: string | null;
   role: 'admin' | 'user';
   is_verified: boolean;
+  is_approved: boolean;
   license_key: string | null;
   created_at: string;
   updated_at: string;
