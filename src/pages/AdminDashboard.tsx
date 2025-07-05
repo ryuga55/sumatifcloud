@@ -12,6 +12,7 @@ interface PendingUser {
   id: string;
   user_id: string;
   full_name: string | null;
+  email: string | null;
   created_at: string;
   is_approved: boolean;
 }
@@ -30,7 +31,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, user_id, full_name, created_at, is_approved')
+        .select('id, user_id, full_name, email, created_at, is_approved')
         .eq('role', 'user')
         .order('created_at', { ascending: false });
 
@@ -229,6 +230,9 @@ export default function AdminDashboard() {
                       <div className="flex items-center space-x-3">
                         <div>
                           <p className="font-medium">{user.full_name || 'Nama tidak tersedia'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Email: {user.email || 'Email tidak tersedia'}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             Terdaftar: {new Date(user.created_at).toLocaleDateString('id-ID')}
                           </p>
