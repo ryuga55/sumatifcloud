@@ -112,8 +112,50 @@ const RekapKehadiran = () => {
   const showAttendanceTable = selectedKelas && startDate && endDate;
 
   const handleExportPDF = () => {
-    // Logic to export to PDF
-    console.log('Exporting attendance to PDF...');
+    if (attendanceData.length === 0) return;
+    
+    const printContent = document.createElement('div');
+    printContent.innerHTML = `
+      <h2>Rekap Kehadiran Siswa</h2>
+      <p>Periode: ${startDate} - ${endDate}</p>
+      <table border="1" style="border-collapse: collapse; width: 100%;">
+        <thead>
+          <tr>
+            <th>NIS</th>
+            <th>Nama Siswa</th>
+            <th>Hadir</th>
+            <th>Sakit</th>
+            <th>Izin</th>
+            <th>Alfa</th>
+            <th>Terlambat</th>
+            <th>Persentase</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${attendanceData.map(student => {
+            const category = getAttendanceCategory(student.percentage);
+            return `
+              <tr>
+                <td>${student.nis}</td>
+                <td>${student.name}</td>
+                <td>${student.hadir}</td>
+                <td>${student.sakit}</td>
+                <td>${student.izin}</td>
+                <td>${student.alfa}</td>
+                <td>${student.terlambat}</td>
+                <td>${student.percentage}%</td>
+                <td>${category.label}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    
+    const newWindow = window.open('', '_blank');
+    newWindow.document.write(printContent.innerHTML);
+    newWindow.print();
   };
 
   const calculateClassStats = () => {

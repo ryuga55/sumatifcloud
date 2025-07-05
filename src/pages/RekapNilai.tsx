@@ -10,6 +10,7 @@ import { FileText, Download, FileSpreadsheet } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 const RekapNilai = () => {
   const { profile } = useAuth();
@@ -123,7 +124,8 @@ const RekapNilai = () => {
         categories.forEach(category => {
           const categoryScores = studentScores.filter(s => s.category_id === category.id);
           if (categoryScores.length > 0) {
-            categoryAverages[category.name] = categoryScores.reduce((sum, score) => sum + score.score, 0) / categoryScores.length;
+            const average = categoryScores.reduce((sum, score) => sum + score.score, 0) / categoryScores.length;
+            categoryAverages[category.name] = parseFloat(average.toFixed(1));
           } else {
             categoryAverages[category.name] = 0;
           }
@@ -161,13 +163,65 @@ const RekapNilai = () => {
   const showGradesTable = selectedKelas && selectedMapel;
 
   const handleExportExcel = () => {
-    // Logic to export to Excel
-    console.log('Exporting to Excel...');
+    if (studentGrades.length === 0) return;
+    
+    const wb = XLSX.utils.book_new();
+    
+    const wsData = [
+      ['NIS', 'Nama Siswa', ...categories.map(cat => cat.name), 'Nilai Akhir', 'Grade'],
+      ...studentGrades.map(student => {
+        const grade = getGradeCategory(student.final);
+        return [
+          student.nis,
+          student.name,
+          ...categories.map(cat => student[cat.name] || 0),
+          student.final,
+          grade.label
+        ];
+      })
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
+    XLSX.writeFile(wb, `rekap_nilai_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleExportPDF = () => {
-    // Logic to export to PDF
-    console.log('Exporting to PDF...');
+    if (studentGrades.length === 0) return;
+    
+    const printContent = document.createElement('div');
+    printContent.innerHTML = `
+      <h2>Rekap Nilai Siswa</h2>
+      <table border="1" style="border-collapse: collapse; width: 100%;">
+        <thead>
+          <tr>
+            <th>NIS</th>
+            <th>Nama Siswa</th>
+            ${categories.map(cat => `<th>${cat.name}</th>`).join('')}
+            <th>Nilai Akhir</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${studentGrades.map(student => {
+            const grade = getGradeCategory(student.final);
+            return `
+              <tr>
+                <td>${student.nis}</td>
+                <td>${student.name}</td>
+                ${categories.map(cat => `<td>${student[cat.name] || 0}</td>`).join('')}
+                <td>${student.final}</td>
+                <td>${grade.label}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    
+    const newWindow = window.open('', '_blank');
+    newWindow.document.write(printContent.innerHTML);
+    newWindow.print();
   };
 
   const calculateClassAverage = () => {
@@ -334,10 +388,14 @@ const RekapNilai = () => {
                       <TableRow>
                         <TableHead>NIS</TableHead>
                         <TableHead>Nama Siswa</TableHead>
-                        <TableHead className="text-center">Tugas (25%)</TableHead>
-                        <TableHead className="text-center">Ulangan (35%)</TableHead>
-                        <TableHead className="text-center">UTS (20%)</TableHead>
-                        <TableHead className="text-center">UAS (20%)</TableHead>
+                        {categories.map((category) => {
+                          const weight = weights.find(w => w.category_id === category.id);
+                          return (
+                            <TableHead key={category.id} className="text-center">
+                              {category.name} ({weight ? weight.weight_percent : 0}%)
+                            </TableHead>
+                          );
+                        })}
                         <TableHead className="text-center">Nilai Akhir</TableHead>
                         <TableHead className="text-center">Grade</TableHead>
                       </TableRow>
@@ -349,10 +407,11 @@ const RekapNilai = () => {
                           <TableRow key={student.id}>
                             <TableCell className="font-medium">{student.nis}</TableCell>
                             <TableCell>{student.name}</TableCell>
-                            <TableCell className="text-center">{student.tugas}</TableCell>
-                            <TableCell className="text-center">{student.ulangan}</TableCell>
-                            <TableCell className="text-center">{student.uts}</TableCell>
-                            <TableCell className="text-center">{student.uas}</TableCell>
+                            {categories.map((category) => (
+                              <TableCell key={category.id} className="text-center">
+                                {student[category.name] || 0}
+                              </TableCell>
+                            ))}
                             <TableCell className="text-center font-semibold">
                               {student.final}
                             </TableCell>
@@ -364,11 +423,11 @@ const RekapNilai = () => {
                           </TableRow>
                         );
                       })}
-                      <TableRow className="font-semibold bg-muted/50">
-                        <TableCell colSpan={6} className="text-right">Rata-rata Kelas:</TableCell>
-                        <TableCell className="text-center">{calculateClassAverage()}</TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
+                       <TableRow className="font-semibold bg-muted/50">
+                         <TableCell colSpan={categories.length + 2} className="text-right">Rata-rata Kelas:</TableCell>
+                         <TableCell className="text-center">{calculateClassAverage()}</TableCell>
+                         <TableCell></TableCell>
+                       </TableRow>
                     </TableBody>
                   </Table>
                 </CardContent>

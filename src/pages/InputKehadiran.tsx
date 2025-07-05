@@ -118,7 +118,7 @@ const InputKehadiran = () => {
         student_id: student.id,
         date: selectedDate,
         status: student.status,
-        user_id: profile.user_id
+        user_id: profile?.user_id
       }));
 
       const { error } = await supabase
