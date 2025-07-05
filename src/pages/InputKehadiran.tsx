@@ -112,13 +112,22 @@ const InputKehadiran = () => {
   };
 
   const handleSaveAll = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const attendanceRecords = students.map(student => ({
         student_id: student.id,
         date: selectedDate,
         status: student.status,
-        user_id: user?.id
+        user_id: user.id
       }));
 
       const { error } = await supabase
@@ -127,16 +136,20 @@ const InputKehadiran = () => {
           onConflict: 'student_id,date,user_id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Attendance save error:', error);
+        throw error;
+      }
 
       toast({
         title: "Berhasil",
         description: "Data kehadiran berhasil disimpan",
       });
     } catch (error) {
+      console.error('Error saving attendance:', error);
       toast({
         title: "Error",
-        description: "Gagal menyimpan data kehadiran",
+        description: error.message || "Gagal menyimpan data kehadiran",
         variant: "destructive",
       });
     } finally {
@@ -240,9 +253,9 @@ const InputKehadiran = () => {
                       Pilih status kehadiran untuk setiap siswa
                     </CardDescription>
                   </div>
-                  <Button onClick={handleSaveAll}>
+                  <Button onClick={handleSaveAll} disabled={loading}>
                     <Save className="mr-2 h-4 w-4" />
-                    Simpan Kehadiran
+                    {loading ? 'Menyimpan...' : 'Simpan Kehadiran'}
                   </Button>
                 </CardHeader>
                 <CardContent>
