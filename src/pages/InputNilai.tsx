@@ -153,7 +153,7 @@ const InputNilai = () => {
       for (const student of students) {
         for (const assessment of assessments) {
           const score = scores[student.id]?.[assessment.name];
-          if (score !== undefined && score !== null && score !== 0) {
+          if (score !== undefined && score !== null && !isNaN(score)) {
             scoresToSave.push({
               student_id: student.id,
               subject_id: selectedMapel,

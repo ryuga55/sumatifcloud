@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const InputKehadiran = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const [selectedKelas, setSelectedKelas] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -118,7 +118,7 @@ const InputKehadiran = () => {
         student_id: student.id,
         date: selectedDate,
         status: student.status,
-        user_id: profile?.user_id
+        user_id: user?.id
       }));
 
       const { error } = await supabase
