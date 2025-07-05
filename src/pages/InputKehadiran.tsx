@@ -124,7 +124,7 @@ const InputKehadiran = () => {
       const { error } = await supabase
         .from('attendance')
         .upsert(attendanceRecords, {
-          onConflict: 'student_id,date'
+          onConflict: 'student_id,date,user_id'
         });
 
       if (error) throw error;
