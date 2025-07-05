@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Footer } from "@/components/Footer";
 import { Users, GraduationCap, BookOpen, BarChart3, UserCheck, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -231,6 +232,7 @@ const Index = () => {
               </Card>
             </div>
           </main>
+          <Footer />
         </SidebarInset>
       </div>
     </SidebarProvider>

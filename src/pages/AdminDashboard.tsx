@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Footer } from '@/components/Footer';
 import { UserCheck, Users, Crown, LogOut } from 'lucide-react';
 
 interface PendingUser {
@@ -194,6 +195,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+      <Footer />
     </div>
   );
 }

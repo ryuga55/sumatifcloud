@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Footer } from '@/components/Footer';
 import { Loader2, GraduationCap } from 'lucide-react';
 
 export default function Auth() {
@@ -101,8 +102,9 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto h-12 w-12 bg-primary rounded-full flex items-center justify-center">
             <GraduationCap className="h-6 w-6 text-primary-foreground" />
@@ -213,6 +215,8 @@ export default function Auth() {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
+      <Footer />
     </div>
   );
 }

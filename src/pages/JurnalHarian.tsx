@@ -6,6 +6,7 @@ import { CalendarIcon, FileDown, Plus, Edit, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
+import { Footer } from '@/components/Footer'
 import { toast } from "sonner"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -267,10 +268,11 @@ export default function JurnalHarian() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Jurnal Harian</h1>
-        <div className="flex gap-2">
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 container mx-auto py-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Jurnal Harian</h1>
+          <div className="flex gap-2">
           <Button onClick={exportToPDF} variant="outline">
             <FileDown className="h-4 w-4 mr-2" />
             Export PDF
@@ -543,6 +545,8 @@ export default function JurnalHarian() {
           </Table>
         </CardContent>
       </Card>
+      </div>
+      <Footer />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
+import { Footer } from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Clock, UserCheck } from 'lucide-react';
@@ -40,6 +41,7 @@ export default function WaitingApproval() {
           </Button>
         </CardContent>
       </Card>
+      <Footer />
     </div>
   );
 }
