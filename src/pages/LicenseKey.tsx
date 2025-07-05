@@ -81,7 +81,7 @@ export default function LicenseKey() {
         description: "License key berhasil diaktifkan!"
       });
 
-      navigate('/dashboard');
+      navigate('/');
     } catch (error) {
       toast({
         title: "Error",
