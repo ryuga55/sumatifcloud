@@ -175,17 +175,23 @@ const InputNilai = () => {
         return;
       }
 
-      // Delete existing scores first
-      await supabase
-        .from('scores')
-        .delete()
-        .eq('subject_id', selectedMapel)
-        .eq('category_id', selectedKategori);
+      // Delete existing scores for these specific students, subject, and category
+      const studentIds = students.map(s => s.id);
+      if (studentIds.length > 0) {
+        await supabase
+          .from('scores')
+          .delete()
+          .eq('subject_id', selectedMapel)
+          .eq('category_id', selectedKategori)
+          .in('student_id', studentIds);
+      }
 
-      // Insert new scores
+      // Insert new scores using upsert to handle conflicts
       const { error } = await supabase
         .from('scores')
-        .insert(scoresToSave);
+        .upsert(scoresToSave, {
+          onConflict: 'student_id,subject_id,category_id,assessment_name'
+        });
 
       if (error) throw error;
 
