@@ -169,24 +169,13 @@ const InputNilai = () => {
       if (scoresToSave.length === 0) {
         toast({
           title: "Warning",
-          description: "No scores to save",
+          description: "Tidak ada nilai untuk disimpan",
           variant: "destructive",
         });
         return;
       }
 
-      // Delete existing scores for these specific students, subject, and category
-      const studentIds = students.map(s => s.id);
-      if (studentIds.length > 0) {
-        await supabase
-          .from('scores')
-          .delete()
-          .eq('subject_id', selectedMapel)
-          .eq('category_id', selectedKategori)
-          .in('student_id', studentIds);
-      }
-
-      // Insert new scores using upsert to handle conflicts
+      // Use upsert to handle both insert and update
       const { error } = await supabase
         .from('scores')
         .upsert(scoresToSave, {
@@ -196,14 +185,14 @@ const InputNilai = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "All scores saved successfully",
+        title: "Berhasil",
+        description: "Semua nilai berhasil disimpan",
       });
     } catch (error) {
       console.error('Error saving scores:', error);
       toast({
         title: "Error",
-        description: "Failed to save scores",
+        description: "Gagal menyimpan nilai",
         variant: "destructive",
       });
     }
